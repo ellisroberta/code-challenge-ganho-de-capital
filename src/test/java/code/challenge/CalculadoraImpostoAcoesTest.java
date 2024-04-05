@@ -1,4 +1,4 @@
-package org.example;
+package code.challenge;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
