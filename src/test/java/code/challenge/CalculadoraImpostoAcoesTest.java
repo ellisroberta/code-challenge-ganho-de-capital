@@ -1,5 +1,7 @@
 package code.challenge;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +18,33 @@ public class CalculadoraImpostoAcoesTest {
         CalculadoraImpostoAcoes.operacoesAcoes.clear();
     }
 
+    @Test
+    @DisplayName("Deve calcular impostos")
+    public void testCalcularImpostos() {
+        JSONArray operacoes = new JSONArray();
+        operacoes.put(new JSONObject().put("operation", "buy").put("unit-cost", 10).put("quantity", 100));
+        operacoes.put(new JSONObject().put("operation", "sell").put("unit-cost", 15).put("quantity", 50));
+
+        JSONArray impostos = CalculadoraImpostoAcoes.calcularImpostos(operacoes);
+
+        // Ajuste a expectativa para 2, pois há uma operação de compra e uma de venda
+        assertEquals(2, impostos.length());
+
+        // Verifica se o imposto da operação de venda é 0
+        JSONObject impostoVenda = impostos.getJSONObject(1);
+        assertEquals(0, impostoVenda.getDouble("tax"));
+    }
+
+    @Test
+    @DisplayName("Deve calcular preço médio ponderado")
+    public void testCalcularPrecoMedioPonderado() {
+        CalculadoraImpostoAcoes.operacoesAcoes.add(new OperacaoAcoes(10, 100));
+        CalculadoraImpostoAcoes.operacoesAcoes.add(new OperacaoAcoes(15, 50));
+
+        double precoMedioPonderado = CalculadoraImpostoAcoes.calcularPrecoMedioPonderado();
+
+        assertEquals(11.67, precoMedioPonderado, 0.01);
+    }
     @Test
     @DisplayName("Deve ler a entrada")
     public void testLerEntrada() {
