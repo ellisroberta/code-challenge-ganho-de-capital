@@ -49,6 +49,12 @@
             <version>3.12.4</version> <!-- Versão do Mockito JUnit Jupiter -->
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.xbean</groupId>
+            <artifactId>xbean-reflect</artifactId>
+            <version>3.4</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 

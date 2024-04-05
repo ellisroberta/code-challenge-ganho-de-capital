@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Scanner;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public class CalculadoraImpostoAcoes {
@@ -93,5 +94,27 @@ public class CalculadoraImpostoAcoes {
         }
 
         return Math.round((somaValores / somaQuantidades) * 100.0) / 100.0; // Arredondamento para 2 casas decimais
+    }
+
+    public static List<OperacaoAcoes> lerEntrada(String entrada) {
+        List<OperacaoAcoes> operacoes = new ArrayList<>();
+
+        try {
+            JSONArray jsonArray = new JSONArray(entrada);
+
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonObject = jsonArray.getJSONObject(i);
+//                String tipo = jsonObject.getString("tipo");
+//                String data = jsonObject.getString("data");
+                int quantidade = jsonObject.getInt("quantidade");
+                double preco = jsonObject.getDouble("preco");
+
+                operacoes.add(new OperacaoAcoes(preco, quantidade/*, tipo, data*/));
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return operacoes;
     }
 }
