@@ -9,7 +9,7 @@ import org.json.JSONObject;
 
 public class CalculadoraImpostoAcoes {
 
-    static List<OperacaoAcao> operacoesAcoes = new ArrayList<>();
+    static List<OperacaoAcoes> operacoesAcoes = new ArrayList<>();
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -49,7 +49,7 @@ public class CalculadoraImpostoAcoes {
             int quantidade = operacao.getInt("quantity");
 
             if (tipoOperacao.equals("buy")) {
-                operacoesAcoes.add(new OperacaoAcao(precoUnitario, quantidade));
+                operacoesAcoes.add(new OperacaoAcoes(precoUnitario, quantidade));
                 precoMedioPonderado = calcularPrecoMedioPonderado();
                 impostos.put(new JSONObject().put("tax", 0));
             } else if (tipoOperacao.equals("sell")) {
@@ -83,7 +83,7 @@ public class CalculadoraImpostoAcoes {
         double somaValores = 0;
         int somaQuantidades = 0;
 
-        for (OperacaoAcao operacao : operacoesAcoes) {
+        for (OperacaoAcoes operacao : operacoesAcoes) {
             somaValores += operacao.getPrecoUnitario() * operacao.getQuantidade();
             somaQuantidades += operacao.getQuantidade();
         }
@@ -93,23 +93,5 @@ public class CalculadoraImpostoAcoes {
         }
 
         return Math.round((somaValores / somaQuantidades) * 100.0) / 100.0; // Arredondamento para 2 casas decimais
-    }
-
-    static class OperacaoAcao {
-        private double precoUnitario;
-        private int quantidade;
-
-        public OperacaoAcao(double precoUnitario, int quantidade) {
-            this.precoUnitario = precoUnitario;
-            this.quantidade = quantidade;
-        }
-
-        public double getPrecoUnitario() {
-            return precoUnitario;
-        }
-
-        public int getQuantidade() {
-            return quantidade;
-        }
     }
 }
