@@ -1,20 +1,21 @@
 package code.challenge;
 
+import java.math.BigDecimal;
+
 public class OperacaoAcoes {
-    private double precoUnitario;
+    private BigDecimal precoUnitario;
     private int quantidade;
 
-    public OperacaoAcoes(double precoUnitario, int quantidade) {
+    public OperacaoAcoes(BigDecimal precoUnitario, int quantidade) {
         this.precoUnitario = precoUnitario;
         this.quantidade = quantidade;
     }
 
-    public double getPrecoUnitario() {
+    public BigDecimal getPrecoUnitario() {
         return precoUnitario;
     }
 
     public int getQuantidade() {
         return quantidade;
     }
-
 }
