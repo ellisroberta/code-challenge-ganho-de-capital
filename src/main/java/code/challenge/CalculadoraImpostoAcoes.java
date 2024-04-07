@@ -5,7 +5,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -58,20 +57,28 @@ public class CalculadoraImpostoAcoes {
                 BigDecimal lucro = valorTotalOperacao.subtract(precoMedioPonderado.multiply(BigDecimal.valueOf(quantidade)));
                 BigDecimal imposto = BigDecimal.ZERO;
 
-                // Calcula o imposto apenas se houver lucro
-                if (lucro.compareTo(BigDecimal.ZERO) > 0) {
-                    imposto = lucro.multiply(BigDecimal.valueOf(0.2)).setScale(2, RoundingMode.HALF_UP); // Imposto de 20%
-                    prejuizoAcumulado = BigDecimal.ZERO; // Zera o prejuízo acumulado se houver lucro
-                } else {
-                    prejuizoAcumulado = prejuizoAcumulado.add(lucro.abs());
+                if (valorTotalOperacao.compareTo(BigDecimal.valueOf(20000)) > 0) {
+                    if (prejuizoAcumulado.compareTo(BigDecimal.ZERO) > 0) {
+                        lucro = lucro.subtract(prejuizoAcumulado.min(lucro));
+                        prejuizoAcumulado = prejuizoAcumulado.subtract(lucro.min(prejuizoAcumulado));
+                    }
+
+                    if (lucro.compareTo(BigDecimal.ZERO) > 0) {
+                        imposto = lucro.multiply(BigDecimal.valueOf(0.2)); // Imposto de 20%
+                    }
                 }
 
                 impostos.put(new JSONObject().put("tax", imposto));
+
+                if (lucro.compareTo(BigDecimal.ZERO) < 0) {
+                    prejuizoAcumulado = prejuizoAcumulado.add(lucro.abs());
+                }
             }
         }
 
         return impostos;
     }
+
     static BigDecimal calcularPrecoMedioPonderado() {
         BigDecimal somaValores = BigDecimal.ZERO;
         int somaQuantidades = 0;
@@ -85,8 +92,7 @@ public class CalculadoraImpostoAcoes {
             return BigDecimal.ZERO; // Retorna 0 se não houver operações
         }
 
-        BigDecimal precoMedioPonderado = somaValores.divide(BigDecimal.valueOf(somaQuantidades), 2, RoundingMode.HALF_UP);
-        return precoMedioPonderado;
+        return somaValores.divide(BigDecimal.valueOf(somaQuantidades), 2, BigDecimal.ROUND_HALF_UP);
     }
 
     public static List<OperacaoAcoes> lerEntrada(String entrada) {
