@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,19 +23,51 @@ public class CalculadoraImpostoAcoesTest {
     }
 
     @Test
-    @DisplayName("Deve calcular impostos")
-    public void testCalcularImpostos() {
+    @DisplayName("Deve calcular imposto zero quando não há lucro")
+    public void testCalcularImpostoSemLucro() {
         JSONArray operacoes = new JSONArray();
         operacoes.put(new JSONObject().put("operation", "buy").put("unit-cost", 10).put("quantity", 100));
-        operacoes.put(new JSONObject().put("operation", "sell").put("unit-cost", 15).put("quantity", 50));
+        operacoes.put(new JSONObject().put("operation", "sell").put("unit-cost", 8).put("quantity", 100));
 
         JSONArray impostos = CalculadoraImpostoAcoes.calcularImpostos(operacoes);
 
         assertEquals(2, impostos.length());
 
-        // Verifica se o imposto da operação de venda é 0
         JSONObject impostoVenda = impostos.getJSONObject(1);
         assertEquals(BigDecimal.ZERO, impostoVenda.getBigDecimal("tax"));
+    }
+
+    @Test
+    @DisplayName("Deve calcular imposto quando há lucro")
+    public void testCalcularImpostoComLucro() {
+        JSONArray operacoes = new JSONArray();
+        operacoes.put(new JSONObject().put("operation", "buy").put("unit-cost", 10).put("quantity", 100));
+        operacoes.put(new JSONObject().put("operation", "sell").put("unit-cost", 15).put("quantity", 100));
+
+        JSONArray impostos = CalculadoraImpostoAcoes.calcularImpostos(operacoes);
+
+        assertEquals(2, impostos.length());
+
+        JSONObject impostoVenda = impostos.getJSONObject(1);
+        BigDecimal impostoEsperado = BigDecimal.valueOf(100.00).setScale(2, RoundingMode.HALF_UP);
+        assertEquals(impostoEsperado, impostoVenda.getBigDecimal("tax"));
+    }
+
+    @Test
+    @DisplayName("Deve calcular imposto para múltiplas operações")
+    public void testCalcularImpostoComMultiplasOperacoes() {
+        JSONArray operacoes = new JSONArray();
+        operacoes.put(new JSONObject().put("operation", "buy").put("unit-cost", 10).put("quantity", 100));
+        operacoes.put(new JSONObject().put("operation", "buy").put("unit-cost", 12).put("quantity", 50));
+        operacoes.put(new JSONObject().put("operation", "sell").put("unit-cost", 20).put("quantity", 100));
+
+        JSONArray impostos = CalculadoraImpostoAcoes.calcularImpostos(operacoes);
+
+        assertEquals(3, impostos.length());
+
+        JSONObject impostoVenda = impostos.getJSONObject(2);
+        BigDecimal impostoEsperado = BigDecimal.valueOf(186.60).setScale(2, RoundingMode.HALF_UP);
+        assertEquals(impostoEsperado, impostoVenda.getBigDecimal("tax"));
     }
 
     @Test
