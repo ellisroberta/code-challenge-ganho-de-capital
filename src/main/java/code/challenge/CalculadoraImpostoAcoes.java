@@ -28,9 +28,6 @@ public class CalculadoraImpostoAcoes {
             JSONArray impostos = calcularImpostos(operacoes);
             System.out.println("\nSaida:");
             System.out.println(impostos);
-
-            // Limpa a lista de operações para evitar interferência entre entradas
-            operacoesAcoes.clear();
         }
 
         scanner.close();
@@ -108,7 +105,7 @@ public class CalculadoraImpostoAcoes {
                 int quantidade = jsonObject.getInt("quantity");
 
                 // Criando objetos OperacaoAcoes com base nos valores lidos
-                operacoes.add(new OperacaoAcoes(preco, quantidade/*, tipo, data*/));
+                operacoes.add(new OperacaoAcoes(preco, quantidade));
             }
         } catch (JSONException e) {
             e.printStackTrace();
