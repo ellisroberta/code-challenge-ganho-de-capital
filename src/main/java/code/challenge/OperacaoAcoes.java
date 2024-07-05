@@ -24,4 +24,8 @@ public class OperacaoAcoes {
     public String getTipoOperacao() {
         return tipoOperacao;
     }
+
+    public BigDecimal getValorTotal() {
+        return precoUnitario.multiply(BigDecimal.valueOf(quantidade));
+    }
 }

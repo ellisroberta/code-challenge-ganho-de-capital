@@ -8,11 +8,11 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class CalculadoraImpostoAcoes {
     private static final Logger logger = Logger.getLogger(CalculadoraImpostoAcoes.class.getName());
+    private static final BigDecimal TAXA_IMPOSTO = new BigDecimal("0.2");
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -28,15 +28,11 @@ public class CalculadoraImpostoAcoes {
             JSONArray operacoes = new JSONArray(line);
 
             if (operacoes.length() > 0) {
-                logger.info("\nEntrada: ");
-                logger.info(line);
+                logger.info("Entrada: " + line);
 
                 JSONArray impostos = processarOperacoes(operacoes);
 
-                if (logger.isLoggable(Level.INFO)) {
-                    logger.info("\nSaida: ");
-                    logger.info(impostos.toString());
-                }
+                logger.info("Saida: " + impostos.toString());
             }
         }
 
@@ -48,19 +44,39 @@ public class CalculadoraImpostoAcoes {
         List<OperacaoAcoes> operacoesAcoes = lerEntrada(operacoes);
 
         if (operacoesAcoes.isEmpty()) {
-            return impostos; // Retorna um array vazio se não houver operações válidas
+            return impostos;
         }
 
-        BigDecimal precoMedioPonderado = calcularPrecoMedioPonderado(operacoesAcoes);
+        BigDecimal precoMedioPonderado = BigDecimal.ZERO;
         BigDecimal prejuizoAcumulado = BigDecimal.ZERO;
+        int quantidadeTotal = 0;
 
         for (OperacaoAcoes operacao : operacoesAcoes) {
             if ("sell".equals(operacao.getTipoOperacao())) {
+                BigDecimal valorTotalOperacao = operacao.getPrecoUnitario().multiply(BigDecimal.valueOf(operacao.getQuantidade()));
+
+                if (valorTotalOperacao.compareTo(new BigDecimal("20000")) <= 0) {
+                    impostos.put(new JSONObject().put("tax", BigDecimal.ZERO));
+                    continue;
+                }
+
                 BigDecimal lucro = calcularLucro(precoMedioPonderado, operacao);
-                BigDecimal imposto = calcularImposto(lucro, prejuizoAcumulado);
+                BigDecimal imposto = BigDecimal.ZERO;
+
+                if (lucro.compareTo(BigDecimal.ZERO) > 0) {
+                    imposto = calcularImposto(lucro, prejuizoAcumulado);
+                }
 
                 impostos.put(new JSONObject().put("tax", imposto));
-                atualizarPrejuizoAcumulado(lucro, prejuizoAcumulado);
+
+                if (lucro.compareTo(BigDecimal.ZERO) < 0) {
+                    prejuizoAcumulado = prejuizoAcumulado.add(lucro.negate());
+                }
+
+                quantidadeTotal -= operacao.getQuantidade();
+            } else {
+                precoMedioPonderado = atualizarPrecoMedioPonderado(precoMedioPonderado, operacao, quantidadeTotal);
+                quantidadeTotal += operacao.getQuantidade();
             }
         }
 
@@ -87,41 +103,28 @@ public class CalculadoraImpostoAcoes {
         return valorTotalOperacao.subtract(precoMedioPonderado.multiply(BigDecimal.valueOf(operacao.getQuantidade())));
     }
 
-    private static BigDecimal calcularImposto(BigDecimal lucro, BigDecimal prejuizoAcumulado) {
+    static BigDecimal calcularImposto(BigDecimal lucro, BigDecimal prejuizoAcumulado) {
         if (lucro.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
 
-        BigDecimal imposto = lucro.multiply(BigDecimal.valueOf(0.2));
+        BigDecimal lucroAposPrejuizo = lucro.subtract(prejuizoAcumulado);
 
-        if (lucro.compareTo(BigDecimal.valueOf(20000)) > 0 && prejuizoAcumulado.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal prejuizoUtilizado = prejuizoAcumulado.min(lucro);
-            imposto = imposto.subtract(prejuizoUtilizado.multiply(BigDecimal.valueOf(0.2)));
+        if (lucroAposPrejuizo.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
         }
+
+        BigDecimal imposto = lucroAposPrejuizo.multiply(TAXA_IMPOSTO);
 
         return imposto.setScale(2, RoundingMode.HALF_UP);
     }
 
-    private static void atualizarPrejuizoAcumulado(BigDecimal lucro, BigDecimal prejuizoAcumulado) {
-        if (lucro.compareTo(BigDecimal.ZERO) < 0) {
-            prejuizoAcumulado.add(lucro.negate());
-        }
-    }
+    private static BigDecimal atualizarPrecoMedioPonderado(BigDecimal precoMedioPonderado, OperacaoAcoes operacao, int quantidadeTotal) {
+        BigDecimal valorTotalAtual = precoMedioPonderado.multiply(BigDecimal.valueOf(quantidadeTotal));
+        BigDecimal valorTotalNovo = operacao.getPrecoUnitario().multiply(BigDecimal.valueOf(operacao.getQuantidade()));
+        BigDecimal valorTotalFinal = valorTotalAtual.add(valorTotalNovo);
+        int quantidadeTotalFinal = quantidadeTotal + operacao.getQuantidade();
 
-    public static BigDecimal calcularPrecoMedioPonderado(List<OperacaoAcoes> operacoesAcoes) {
-        BigDecimal valorTotal = BigDecimal.ZERO;
-        int quantidadeTotal = 0;
-
-        for (OperacaoAcoes operacao : operacoesAcoes) {
-            BigDecimal valorOperacao = operacao.getPrecoUnitario().multiply(BigDecimal.valueOf(operacao.getQuantidade()));
-            valorTotal = valorTotal.add(valorOperacao);
-            quantidadeTotal += operacao.getQuantidade();
-        }
-
-        if (quantidadeTotal > 0) {
-            return valorTotal.divide(BigDecimal.valueOf(quantidadeTotal), 2, RoundingMode.HALF_UP);
-        } else {
-            return BigDecimal.ZERO;
-        }
+        return valorTotalFinal.divide(BigDecimal.valueOf(quantidadeTotalFinal), 2, RoundingMode.HALF_UP);
     }
 }
