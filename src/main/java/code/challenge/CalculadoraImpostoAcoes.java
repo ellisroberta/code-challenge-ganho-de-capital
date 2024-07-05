@@ -4,29 +4,39 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.logging.Logger;
 
 public class CalculadoraImpostoAcoes {
     static List<OperacaoAcoes> operacoesAcoes = new ArrayList<>();
+    static Logger logger = Logger.getLogger(CalculadoraImpostoAcoes.class.getName());
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
-            System.out.println("\nPor favor, digite a entrada ou pressione Enter para sair:");
+            logger.info("\nPor favor, digite a entrada ou pressione Enter para sair: ");
             String line = scanner.nextLine().trim();
 
-            if (line.isEmpty())
+            if (line.isEmpty()) {
                 break;
-
-            System.out.println("\nEntrada: \n" + line);
+            }
 
             JSONArray operacoes = new JSONArray(line);
-            JSONArray impostos = calcularImpostos(operacoes);
-            System.out.println("\nSaida:");
-            System.out.println(impostos);
+
+            // Verifica se há operações na entrada antes de calcular impostos e registrar saídas
+            if (operacoes.length() > 0) {
+                logger.info("\nEntrada: ");
+                logger.info(line);
+
+                JSONArray impostos = calcularImpostos(operacoes);
+
+                logger.info("\nSaida: ");
+                logger.info(impostos.toString());
+            }
         }
 
         scanner.close();
@@ -81,11 +91,16 @@ public class CalculadoraImpostoAcoes {
         int quantidadeTotal = 0;
 
         for (OperacaoAcoes operacao : operacoesAcoes) {
-            valorTotal = valorTotal.add(operacao.getPrecoUnitario().multiply(BigDecimal.valueOf(operacao.getQuantidade())));
+            BigDecimal valorOperacao = operacao.getPrecoUnitario().multiply(BigDecimal.valueOf(operacao.getQuantidade()));
+            valorTotal = valorTotal.add(valorOperacao);
             quantidadeTotal += operacao.getQuantidade();
         }
 
-        return quantidadeTotal > 0 ? valorTotal.divide(BigDecimal.valueOf(quantidadeTotal), 2, BigDecimal.ROUND_HALF_UP) : BigDecimal.ZERO;
+        if (quantidadeTotal > 0) {
+            return valorTotal.divide(BigDecimal.valueOf(quantidadeTotal), 2, RoundingMode.HALF_UP);
+        } else {
+            return BigDecimal.ZERO;
+        }
     }
 
     public static List<OperacaoAcoes> lerEntrada(String entrada) {
