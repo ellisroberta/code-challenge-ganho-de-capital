@@ -8,6 +8,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class CalculadoraImpostoAcoes {
@@ -27,15 +28,16 @@ public class CalculadoraImpostoAcoes {
 
             JSONArray operacoes = new JSONArray(line);
 
-            // Verifica se há operações na entrada antes de calcular impostos e registrar saídas
             if (operacoes.length() > 0) {
                 logger.info("\nEntrada: ");
                 logger.info(line);
 
                 JSONArray impostos = calcularImpostos(operacoes);
 
-                logger.info("\nSaida: ");
-                logger.info(impostos.toString());
+                if (logger.isLoggable(Level.INFO)) {
+                    logger.info("\nSaida: ");
+                    logger.info(impostos.toString());
+                }
             }
         }
 
