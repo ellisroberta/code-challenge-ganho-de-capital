@@ -7,11 +7,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class CalculadoraImpostoAcoesTest {
+class CalculadoraImpostoAcoesTest {
 
     @BeforeEach
     public void setUp() {
@@ -20,7 +21,7 @@ public class CalculadoraImpostoAcoesTest {
 
     @Test
     @DisplayName("Deve calcular impostos")
-    public void testCalcularImpostos() {
+    void testCalcularImpostos() {
         JSONArray operacoes = new JSONArray();
         operacoes.put(new JSONObject().put("operation", "buy").put("unit-cost", 10).put("quantity", 100));
         operacoes.put(new JSONObject().put("operation", "sell").put("unit-cost", 15).put("quantity", 50));
@@ -36,7 +37,7 @@ public class CalculadoraImpostoAcoesTest {
 
     @Test
     @DisplayName("Deve calcular preço médio ponderado")
-    public void testCalcularPrecoMedioPonderado() {
+    void testCalcularPrecoMedioPonderado() {
         List<OperacaoAcoes> operacoesAcoes = List.of(
                 new OperacaoAcoes(BigDecimal.valueOf(10), 100),
                 new OperacaoAcoes(BigDecimal.valueOf(15), 50)
@@ -44,12 +45,12 @@ public class CalculadoraImpostoAcoesTest {
 
         BigDecimal precoMedioPonderado = CalculadoraImpostoAcoes.calcularPrecoMedioPonderado(operacoesAcoes);
 
-        assertEquals(BigDecimal.valueOf(11.67), precoMedioPonderado.setScale(2, BigDecimal.ROUND_HALF_UP));
+        assertEquals(BigDecimal.valueOf(11.67), precoMedioPonderado.setScale(2, RoundingMode.HALF_UP));
     }
 
     @Test
     @DisplayName("Deve ler a entrada")
-    public void testLerEntrada() {
+    void testLerEntrada() {
         String entrada = "[{\"operation\":\"sell\",\"quantity\":100,\"unit-cost\":10}," +
                 "{\"operation\":\"buy\",\"quantity\":50,\"unit-cost\":5}]";
 
@@ -66,7 +67,7 @@ public class CalculadoraImpostoAcoesTest {
 
     @Test
     @DisplayName("Caso de teste: Input 1 (Case3)")
-    public void testCase3() {
+    void testCase3() {
         JSONArray operacoes = new JSONArray("[{\"operation\":\"buy\", \"unit-cost\":10.00, \"quantity\": 10000}," +
                 "{\"operation\":\"sell\", \"unit-cost\":5.00, \"quantity\": 5000}," +
                 "{\"operation\":\"sell\", \"unit-cost\":20.00, \"quantity\": 3000}]");
@@ -81,7 +82,7 @@ public class CalculadoraImpostoAcoesTest {
 
     @Test
     @DisplayName("Caso de teste: Input 2 (Case4)")
-    public void testCase4() {
+    void testCase4() {
         JSONArray operacoes = new JSONArray("[{\"operation\":\"buy\", \"unit-cost\":10.00, \"quantity\": 10000}," +
                 "{\"operation\":\"buy\", \"unit-cost\":25.00, \"quantity\": 5000}," +
                 "{\"operation\":\"sell\", \"unit-cost\":15.00, \"quantity\": 10000}]");
@@ -96,7 +97,7 @@ public class CalculadoraImpostoAcoesTest {
 
     @Test
     @DisplayName("Caso de teste: Input (Case6)")
-    public void testCase6() {
+    void testCase6() {
         JSONArray operacoes = new JSONArray("[{\"operation\":\"buy\", \"unit-cost\":10.00, \"quantity\": 10000}," +
                 "{\"operation\":\"sell\", \"unit-cost\":2.00, \"quantity\": 5000}," +
                 "{\"operation\":\"sell\", \"unit-cost\":20.00, \"quantity\": 2000}," +
