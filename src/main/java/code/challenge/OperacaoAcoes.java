@@ -3,8 +3,8 @@ package code.challenge;
 import java.math.BigDecimal;
 
 public class OperacaoAcoes {
-    private BigDecimal precoUnitario;
-    private int quantidade;
+    private final BigDecimal precoUnitario;
+    private final int quantidade;
 
     public OperacaoAcoes(BigDecimal precoUnitario, int quantidade) {
         this.precoUnitario = precoUnitario;
