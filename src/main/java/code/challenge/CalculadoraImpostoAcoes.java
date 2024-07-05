@@ -12,8 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class CalculadoraImpostoAcoes {
-    static List<OperacaoAcoes> operacoesAcoes = new ArrayList<>();
-    static Logger logger = Logger.getLogger(CalculadoraImpostoAcoes.class.getName());
+    private static final Logger logger = Logger.getLogger(CalculadoraImpostoAcoes.class.getName());
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -32,7 +31,7 @@ public class CalculadoraImpostoAcoes {
                 logger.info("\nEntrada: ");
                 logger.info(line);
 
-                JSONArray impostos = calcularImpostos(operacoes);
+                JSONArray impostos = processarOperacoes(operacoes);
 
                 if (logger.isLoggable(Level.INFO)) {
                     logger.info("\nSaida: ");
@@ -44,48 +43,69 @@ public class CalculadoraImpostoAcoes {
         scanner.close();
     }
 
-    public static JSONArray calcularImpostos(JSONArray operacoes) {
+    public static JSONArray processarOperacoes(JSONArray operacoes) {
         JSONArray impostos = new JSONArray();
-        operacoesAcoes.clear(); // Limpar o estado antes de calcular impostos
-        BigDecimal precoMedioPonderado = BigDecimal.ZERO;
+        List<OperacaoAcoes> operacoesAcoes = lerEntrada(operacoes);
+
+        if (operacoesAcoes.isEmpty()) {
+            return impostos; // Retorna um array vazio se não houver operações válidas
+        }
+
+        BigDecimal precoMedioPonderado = calcularPrecoMedioPonderado(operacoesAcoes);
         BigDecimal prejuizoAcumulado = BigDecimal.ZERO;
 
-        for (int i = 0; i < operacoes.length(); i++) {
-            JSONObject operacao = operacoes.getJSONObject(i);
-            String tipoOperacao = operacao.getString("operation");
-            BigDecimal precoUnitario = BigDecimal.valueOf(operacao.getDouble("unit-cost"));
-            int quantidade = operacao.getInt("quantity");
-
-            if (tipoOperacao.equals("buy")) {
-                operacoesAcoes.add(new OperacaoAcoes(precoUnitario, quantidade));
-                precoMedioPonderado = calcularPrecoMedioPonderado(operacoesAcoes);
-                impostos.put(new JSONObject().put("tax", BigDecimal.ZERO));
-            } else if (tipoOperacao.equals("sell")) {
-                BigDecimal valorTotalOperacao = precoUnitario.multiply(BigDecimal.valueOf(quantidade));
-                BigDecimal lucro = valorTotalOperacao.subtract(precoMedioPonderado.multiply(BigDecimal.valueOf(quantidade)));
-                BigDecimal imposto = BigDecimal.ZERO;
-
-                if (valorTotalOperacao.compareTo(BigDecimal.valueOf(20000)) > 0) {
-                    if (prejuizoAcumulado.compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal prejuizoUtilizado = prejuizoAcumulado.min(lucro);
-                        lucro = lucro.subtract(prejuizoUtilizado);
-                        prejuizoAcumulado = prejuizoAcumulado.subtract(prejuizoUtilizado);
-                    }
-
-                    if (lucro.compareTo(BigDecimal.ZERO) > 0) {
-                        imposto = lucro.multiply(BigDecimal.valueOf(0.2)); // Imposto de 20%
-                    }
-                }
+        for (OperacaoAcoes operacao : operacoesAcoes) {
+            if ("sell".equals(operacao.getTipoOperacao())) {
+                BigDecimal lucro = calcularLucro(precoMedioPonderado, operacao);
+                BigDecimal imposto = calcularImposto(lucro, prejuizoAcumulado);
 
                 impostos.put(new JSONObject().put("tax", imposto));
-
-                if (lucro.compareTo(BigDecimal.ZERO) < 0) {
-                    prejuizoAcumulado = prejuizoAcumulado.add(lucro.negate());
-                }
+                atualizarPrejuizoAcumulado(lucro, prejuizoAcumulado);
             }
         }
 
         return impostos;
+    }
+
+    private static List<OperacaoAcoes> lerEntrada(JSONArray operacoes) {
+        List<OperacaoAcoes> operacoesAcoes = new ArrayList<>();
+
+        for (int i = 0; i < operacoes.length(); i++) {
+            JSONObject operacao = operacoes.getJSONObject(i);
+            BigDecimal precoUnitario = operacao.getBigDecimal("unit-cost");
+            int quantidade = operacao.getInt("quantity");
+            String tipoOperacao = operacao.getString("operation");
+
+            operacoesAcoes.add(new OperacaoAcoes(precoUnitario, quantidade, tipoOperacao));
+        }
+
+        return operacoesAcoes;
+    }
+
+    private static BigDecimal calcularLucro(BigDecimal precoMedioPonderado, OperacaoAcoes operacao) {
+        BigDecimal valorTotalOperacao = operacao.getPrecoUnitario().multiply(BigDecimal.valueOf(operacao.getQuantidade()));
+        return valorTotalOperacao.subtract(precoMedioPonderado.multiply(BigDecimal.valueOf(operacao.getQuantidade())));
+    }
+
+    private static BigDecimal calcularImposto(BigDecimal lucro, BigDecimal prejuizoAcumulado) {
+        if (lucro.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal imposto = lucro.multiply(BigDecimal.valueOf(0.2));
+
+        if (lucro.compareTo(BigDecimal.valueOf(20000)) > 0 && prejuizoAcumulado.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal prejuizoUtilizado = prejuizoAcumulado.min(lucro);
+            imposto = imposto.subtract(prejuizoUtilizado.multiply(BigDecimal.valueOf(0.2)));
+        }
+
+        return imposto.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static void atualizarPrejuizoAcumulado(BigDecimal lucro, BigDecimal prejuizoAcumulado) {
+        if (lucro.compareTo(BigDecimal.ZERO) < 0) {
+            prejuizoAcumulado.add(lucro.negate());
+        }
     }
 
     public static BigDecimal calcularPrecoMedioPonderado(List<OperacaoAcoes> operacoesAcoes) {
@@ -103,19 +123,5 @@ public class CalculadoraImpostoAcoes {
         } else {
             return BigDecimal.ZERO;
         }
-    }
-
-    public static List<OperacaoAcoes> lerEntrada(String entrada) {
-        JSONArray jsonArray = new JSONArray(entrada);
-        List<OperacaoAcoes> operacoes = new ArrayList<>();
-
-        for (int i = 0; i < jsonArray.length(); i++) {
-            JSONObject jsonObject = jsonArray.getJSONObject(i);
-            BigDecimal precoUnitario = jsonObject.getBigDecimal("unit-cost");
-            int quantidade = jsonObject.getInt("quantity");
-            operacoes.add(new OperacaoAcoes(precoUnitario, quantidade));
-        }
-
-        return operacoes;
     }
 }
